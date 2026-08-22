@@ -1,0 +1,30 @@
+[project]
+name = "comet"
+version = "0.1.0"
+description = "Proof-of-concept CLI scaffold for satellite telemetry anomaly detection and RAG-assisted diagnosis."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "numpy",
+    "pyyaml",
+    "torch",
+    "sqlalchemy",
+    "llama-index",
+    "chromadb",
+    "pypdf",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

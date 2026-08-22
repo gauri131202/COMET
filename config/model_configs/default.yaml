@@ -1,0 +1,37 @@
+# Number of rows per sliding time-series window. Larger values capture more
+# temporal context but increase memory and compute per window.
+window_size: 60
+
+# Step size between consecutive windows. Smaller values create more overlapping
+# windows and better coverage, but training and diagnostics run slower.
+stride: 20
+
+# Fraction of generated windows used for training. Despite the name, this is
+# currently a train fraction, not a conventional train/test split. For example,
+# 0.2 trains on the first 20 percent of windows.
+train_test_split: 0.2
+
+# LSTM hidden dimension. Larger values can model more complex behavior but train
+# slower and may overfit during quick experiments.
+hidden_size: 32
+
+# Number of stacked LSTM layers. One layer is faster and sufficient for initial
+# testing; more layers increase model capacity and runtime.
+num_layers: 1
+
+# Number of passes over the training windows. More epochs can improve convergence
+# but increase training time approximately linearly.
+epochs: 3
+
+# Number of windows processed per optimizer step. Larger batches can improve
+# throughput if memory is available.
+batch_size: 128
+
+# Adam optimizer learning rate. Higher values learn faster but may be unstable;
+# lower values are steadier but slower.
+learning_rate: 0.001
+
+# Percentile of training reconstruction errors used as the anomaly threshold.
+# 95 means roughly the highest 5 percent of training-window errors define the
+# high-error tail.
+threshold_percentile: 95

@@ -1,0 +1,5 @@
+PyYAML
+torch
+matplotlib
+chromadb
+pypdf
