@@ -163,9 +163,76 @@ def init_db(db_path: str | Path | None = None) -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(anomaly_id) REFERENCES anomalies(anomaly_id)
             );
+
+            CREATE TABLE IF NOT EXISTS series_catalog (
+                series_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dataset_id INTEGER NOT NULL,
+                series_key TEXT NOT NULL,
+                display_name TEXT,
+                kind TEXT NOT NULL DEFAULT 'numeric' CHECK (kind IN ('numeric', 'categorical')),
+                subsystem TEXT,
+                description TEXT,
+                units TEXT,
+                low_limit REAL,
+                high_limit REAL,
+                extra_json TEXT NOT NULL DEFAULT '{}',
+                UNIQUE(dataset_id, series_key),
+                FOREIGN KEY(dataset_id) REFERENCES datasets(dataset_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS samples (
+                sample_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dataset_id INTEGER NOT NULL,
+                source_file_id INTEGER NOT NULL,
+                series_id INTEGER NOT NULL,
+                session_id TEXT,
+                line_no INTEGER NOT NULL,
+                ts TEXT NOT NULL,
+                value_eu REAL,
+                value_dn REAL,
+                status TEXT,
+                dn_alarm TEXT,
+                eu_alarm TEXT,
+                extra_json TEXT NOT NULL DEFAULT '{}',
+                FOREIGN KEY(dataset_id) REFERENCES datasets(dataset_id),
+                FOREIGN KEY(source_file_id) REFERENCES dataset_files(source_file_id),
+                FOREIGN KEY(series_id) REFERENCES series_catalog(series_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS ingest_sessions (
+                ingest_session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dataset_id INTEGER NOT NULL,
+                source_file_id INTEGER NOT NULL,
+                session_id TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                UNIQUE(dataset_id, source_file_id, session_id),
+                FOREIGN KEY(dataset_id) REFERENCES datasets(dataset_id),
+                FOREIGN KEY(source_file_id) REFERENCES dataset_files(source_file_id)
+            );
             """
         )
+        _add_column_if_missing(
+            conn, "dataset_files", "file_metadata_json", "TEXT NOT NULL DEFAULT '{}'"
+        )
         conn.commit()
+
+
+def create_samples_index(db_path: str | Path | None = None) -> None:
+    """Build the samples lookup index. Call after bulk loading, not before."""
+    with get_connection(db_path) as conn:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_samples_series_ts "
+            "ON samples(dataset_id, series_id, ts)"
+        )
+        conn.commit()
+
+
+def _add_column_if_missing(
+    conn: sqlite3.Connection, table: str, column: str, definition: str
+) -> None:
+    existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 def insert_dataset(
