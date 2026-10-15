@@ -18,3 +18,17 @@ long:
 context_columns: [vcid]
 exclude_columns: [recordType, sessionHost, dssId, module, realtime, scet, sclk, name]
 chunk_rows: 200000
+# Dictionary files, relative to the data/ folder.
+dictionary:
+  channels: "Dictionaries/channel.xml"
+  alarms: "Dictionaries/alarms.xml"
+# Source type names (CSV `type` and dictionary `type`) -> numeric or categorical.
+# Matching ignores case, so FLOAT also covers the dictionary's `float`.
+kind_map:
+  FLOAT: numeric
+  SIGNED_INT: numeric
+  UNSIGNED_INT: numeric
+  STATUS: categorical
+  integer: numeric
+  unsigned: numeric
+  enum: categorical
