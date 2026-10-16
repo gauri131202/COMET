@@ -198,17 +198,6 @@ def init_db(db_path: str | Path | None = None) -> None:
                 FOREIGN KEY(source_file_id) REFERENCES dataset_files(source_file_id),
                 FOREIGN KEY(series_id) REFERENCES series_catalog(series_id)
             );
-
-            CREATE TABLE IF NOT EXISTS ingest_sessions (
-                ingest_session_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                dataset_id INTEGER NOT NULL,
-                source_file_id INTEGER NOT NULL,
-                session_id TEXT NOT NULL,
-                metadata_json TEXT NOT NULL DEFAULT '{}',
-                UNIQUE(dataset_id, source_file_id, session_id),
-                FOREIGN KEY(dataset_id) REFERENCES datasets(dataset_id),
-                FOREIGN KEY(source_file_id) REFERENCES dataset_files(source_file_id)
-            );
             """
         )
         _add_column_if_missing(
