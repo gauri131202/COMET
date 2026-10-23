@@ -15,7 +15,7 @@ from src.ingestion.adapter_validation import RowFilter, SourceMapping
 from src.ingestion.catalog import ObservedSeries, build_catalog_rows, write_catalog
 from src.ingestion.csv_ingestion import _build_logger, _file_metadata
 from src.ingestion.dictionary import TelemetryDictionary, read_telemetry_dictionary
-from src.ingestion.values import inexact_integer_text, parse_number
+from src.ingestion.values import parse_number
 
 _ALREADY_DONE = object()
 
@@ -344,18 +344,13 @@ def _sample_rows(
 
 
 def _number(row: list[str], index: int | None, label: str, extra: dict[str, Any]) -> float | None:
-    """Value as a float. Text a float cannot hold exactly or cannot read is kept in extra."""
+    """Value as a float. Text that is not a finite number is kept in extra and the value is NULL."""
     if index is None:
         return None
     text = row[index]
     value = parse_number(text)
-    if value is None:
-        if text.strip():
-            extra[f"{label}_text"] = text.strip()
-        return None
-    exact = inexact_integer_text(text)
-    if exact is not None:
-        extra[f"{label}_text"] = exact
+    if value is None and text.strip():
+        extra[f"{label}_text"] = text.strip()
     return value
 
 
