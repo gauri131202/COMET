@@ -26,3 +26,5 @@ tests/
 
 # remove generated config files
 config/generated/*.yaml
+# Local mission mapping, kept out of the repo. Use config/ingestion/template_*.yaml for new sources.
+config/ingestion/lunar_flashlight.yaml
