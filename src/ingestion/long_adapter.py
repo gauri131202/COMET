@@ -11,7 +11,7 @@ from typing import Any, Iterator
 
 from src.common.paths import DATA_DIR, LOGS_DIR
 from src.db import get_connection, init_db, insert_dataset, update_dataset_row_count, utc_now
-from src.ingestion.adapter_validation import RowFilter, SourceMapping
+from src.ingestion.adapter_validation import SourceMapping
 from src.ingestion.catalog import ObservedSeries, build_catalog_rows, write_catalog
 from src.ingestion.csv_ingestion import _build_logger, _file_metadata
 from src.ingestion.dictionary import TelemetryDictionary, read_telemetry_dictionary
@@ -42,14 +42,12 @@ class _Columns:
     kind: int | None
     name: int | None
     context: dict[str, int]
-    filters: list[tuple[int, RowFilter]]
 
     @classmethod
     def from_header(cls, header: list[str], mapping: SourceMapping) -> _Columns:
         long = mapping.long
         position = {name: index for index, name in enumerate(header)}
         wanted = [mapping.time.column, long.series, *mapping.context_columns]
-        wanted += [f.column for f in mapping.filters]
         wanted += [
             column
             for column in (
@@ -77,7 +75,6 @@ class _Columns:
             kind=at(long.kind),
             name=at(long.name),
             context={column: position[column] for column in mapping.context_columns},
-            filters=[(position[f.column], f) for f in mapping.filters],
         )
 
 
@@ -85,7 +82,6 @@ class _Columns:
 class _FileStats:
     rows_read: int = 0
     rows_loaded: int = 0
-    rows_filtered: int = 0
     rows_bad: int = 0
     sessions: set[str] = field(default_factory=set)
 
@@ -132,7 +128,6 @@ def ingest_long(
         "files_skipped_done": 0,
         "files_failed": 0,
         "rows_loaded": 0,
-        "rows_filtered": 0,
         "rows_bad": 0,
     }
     for path in files:
@@ -149,7 +144,6 @@ def ingest_long(
         else:
             summary["files_ingested"] += 1
             summary["rows_loaded"] += stats.rows_loaded
-            summary["rows_filtered"] += stats.rows_filtered
             summary["rows_bad"] += stats.rows_bad
 
     with closing(get_connection(db_path)) as conn:
@@ -178,8 +172,6 @@ def observe_series(files: list[Path], mapping: SourceMapping, logger) -> dict[st
                 cols = _Columns.from_header(header, mapping)
                 for row in reader:
                     try:
-                        if not _passes_filters(row, cols.filters):
-                            continue
                         key = row[cols.series].strip()
                         if not key:
                             continue
@@ -235,8 +227,7 @@ def _ingest_file(
             conn.rollback()
             raise
     logger.info(
-        "Ingested %s: loaded=%s filtered=%s bad=%s",
-        path.name, stats.rows_loaded, stats.rows_filtered, stats.rows_bad,
+        "Ingested %s: loaded=%s bad=%s", path.name, stats.rows_loaded, stats.rows_bad,
     )
     return stats
 
@@ -283,7 +274,6 @@ def _load_file(conn, path, metadata, mapping, dataset_id, series_ids) -> _FileSt
         "mapping": mapping.name,
         "rows_read": stats.rows_read,
         "rows_loaded": stats.rows_loaded,
-        "rows_filtered": stats.rows_filtered,
         "rows_bad": stats.rows_bad,
         "sessions": sorted(stats.sessions),
     }
@@ -304,9 +294,6 @@ def _sample_rows(
         stats.rows_read += 1
         line_no = reader.line_num
         try:
-            if not _passes_filters(row, cols.filters):
-                stats.rows_filtered += 1
-                continue
             key = row[cols.series].strip()
             ts = datetime.strptime(row[cols.time].strip(), time_format).isoformat(
                 timespec="microseconds"
@@ -359,27 +346,6 @@ def _text(row: list[str], index: int | None) -> str | None:
         return None
     text = row[index].strip()
     return text or None
-
-
-def _passes_filters(row: list[str], filters: list[tuple[int, RowFilter]]) -> bool:
-    for index, rule in filters:
-        cell = row[index].strip()
-        op = rule.op
-        if op == "eq":
-            ok = cell == str(rule.value)
-        elif op == "ne":
-            ok = cell != str(rule.value)
-        elif op == "in":
-            ok = cell in {str(v) for v in rule.value}
-        elif op == "not_in":
-            ok = cell not in {str(v) for v in rule.value}
-        elif op == "empty":
-            ok = cell == ""
-        else:  # not_empty
-            ok = cell != ""
-        if not ok:
-            return False
-    return True
 
 
 def _read_dictionary(mapping: SourceMapping, data_path: Path) -> TelemetryDictionary | None:
