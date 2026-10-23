@@ -38,11 +38,6 @@ context_columns: []
 # optional: columns to ignore.
 exclude_columns: []
 
-# optional: keep only rows that pass every filter.
-# Ops: eq, ne, in, not_in, empty, not_empty. "in" and "not_in" take a list.
-# filters:
-#   - {column: record_type, op: eq, value: telemetry}
-
 # optional: rows read per chunk (default 100000). Lower it if memory is tight.
 # chunk_rows: 100000
 
