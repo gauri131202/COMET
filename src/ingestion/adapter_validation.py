@@ -8,7 +8,6 @@ import yaml
 
 LAYOUTS = {"wide", "long"}
 KINDS = {"numeric", "categorical"}
-FILTER_OPS = {"eq", "ne", "in", "not_in", "not_empty", "empty"}
 DEFAULT_CHUNK_ROWS = 100_000
 
 
@@ -16,13 +15,6 @@ DEFAULT_CHUNK_ROWS = 100_000
 class TimeSpec:
     column: str
     format: str
-
-
-@dataclass(frozen=True)
-class RowFilter:
-    column: str
-    op: str
-    value: Any = None
 
 
 @dataclass(frozen=True)
@@ -55,7 +47,6 @@ class SourceMapping:
     time: TimeSpec
     long: LongColumns | None = None
     series_columns: list[str] | None = None
-    filters: list[RowFilter] = field(default_factory=list)
     exclude_columns: list[str] = field(default_factory=list)
     context_columns: list[str] = field(default_factory=list)
     chunk_rows: int = DEFAULT_CHUNK_ROWS
@@ -79,7 +70,7 @@ def parse_mapping(raw: Any, *, source: str = "mapping") -> SourceMapping:
         raw,
         {
             "name", "layout", "files", "time", "long", "series_columns",
-            "filters", "exclude_columns", "context_columns", "chunk_rows",
+            "exclude_columns", "context_columns", "chunk_rows",
             "dictionary", "kind_map",
         },
         source,
@@ -133,7 +124,6 @@ def parse_mapping(raw: Any, *, source: str = "mapping") -> SourceMapping:
         time=time,
         long=long_columns,
         series_columns=series_columns,
-        filters=_parse_filters(raw.get("filters"), source),
         exclude_columns=exclude,
         context_columns=context,
         chunk_rows=chunk_rows,
@@ -196,29 +186,6 @@ def _parse_kind_map(raw: Any, source: str) -> dict[str, str]:
             raise ValueError(f"{source}: kind_map has duplicate key {key!r} (case-insensitive)")
         result[folded] = value
     return result
-
-
-def _parse_filters(raw: Any, source: str) -> list[RowFilter]:
-    if raw is None:
-        return []
-    if not isinstance(raw, list):
-        raise ValueError(f"{source}: 'filters' must be a list")
-    filters = []
-    for index, item in enumerate(raw):
-        where = f"{source}: filters[{index}]"
-        if not isinstance(item, dict):
-            raise ValueError(f"{where} must be a mapping")
-        _reject_unknown(item, {"column", "op", "value"}, where)
-        op = _require_str(item, "op", where)
-        if op not in FILTER_OPS:
-            raise ValueError(f"{where}: op must be one of {sorted(FILTER_OPS)}, got {op!r}")
-        value = item.get("value")
-        if op in {"in", "not_in"} and not isinstance(value, list):
-            raise ValueError(f"{where}: op {op!r} needs a list value")
-        if op in {"eq", "ne"} and value is None:
-            raise ValueError(f"{where}: op {op!r} needs a value")
-        filters.append(RowFilter(column=_require_str(item, "column", where), op=op, value=value))
-    return filters
 
 
 def _reject_unknown(raw: dict, allowed: set[str], where: str) -> None:
