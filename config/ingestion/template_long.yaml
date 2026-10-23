@@ -1,0 +1,56 @@
+# Template: LONG layout, one row per reading with the channel named in a column.
+#
+# To add a dataset: copy this file, rename it (for example my_mission.yaml), and replace
+# the values below. Keys marked "optional" can be deleted. A mapping is checked when it is
+# loaded; an unknown key or a wrong value is rejected with the field name in the message.
+# For one column per channel, use template_wide.yaml instead.
+
+# Short name for this source. Becomes the dataset name.
+name: my_long_source
+
+layout: long
+
+# File glob, relative to the repo data/ folder (DATA_DIR in src/common/paths.py).
+# A single file or many ("Telemetry/channels_*.csv"). Many files form one dataset.
+files: "Telemetry/channels_*.csv"
+
+# The time column and its strptime format.
+# Common formats: "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%jT%H:%M:%S.%f" (day of year).
+time:
+  column: time
+  format: "%Y-%m-%dT%H:%M:%S.%f"
+
+# Column names in the file. Only `series` is required, plus at least one of
+# value_eu, value_dn or status.
+long:
+  series: channel_id        # the channel each row belongs to
+  value_eu: eng_value       # optional: value in engineering units
+  value_dn: raw_value       # optional: raw value
+  status: state_text        # optional: text state, for channels that are not numbers
+  dn_alarm: raw_alarm       # optional: alarm state of the raw value
+  eu_alarm: eng_alarm       # optional: alarm state of the engineering value
+  session: session_id       # optional: tells repeated (time, channel) readings apart
+  kind: value_type          # optional: column holding each channel's type (see kind_map)
+
+# optional: columns kept as context (stored with each reading, not treated as channels).
+context_columns: []
+
+# optional: columns to ignore.
+exclude_columns: []
+
+# optional: rows read per chunk (default 100000). Lower it if memory is tight.
+# chunk_rows: 100000
+
+# optional: telemetry dictionary files, relative to the data/ folder. They add each
+# channel's description, units and alarms. Needs kind_map. Delete this block if the
+# mission has no dictionary.
+# dictionary:
+#   channels: "Dictionaries/channel.xml"
+#   alarms: "Dictionaries/alarms.xml"
+
+# Type names -> numeric or categorical. Required when `long.kind` or `dictionary` is set.
+# List every type name that appears in the data and the dictionary. Matching ignores case.
+kind_map:
+  FLOAT: numeric
+  INTEGER: numeric
+  TEXT: categorical

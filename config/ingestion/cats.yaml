@@ -1,0 +1,12 @@
+# CATS: wide layout, one row per timestamp, one column per channel.
+# files globs are relative to the repo data/ folder (DATA_DIR in src/common/paths.py).
+name: cats
+layout: wide
+files: "data.csv"
+time:
+  column: timestamp
+  format: "%Y-%m-%d %H:%M:%S"
+# series_columns omitted: every column except time and exclude_columns is a series.
+# y and category are ground-truth labels. They stay as features for now; to remove
+# the leak later, list them under exclude_columns.
+exclude_columns: []
