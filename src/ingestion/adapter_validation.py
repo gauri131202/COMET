@@ -37,6 +37,7 @@ class LongColumns:
     eu_alarm: str | None = None
     session: str | None = None
     kind: str | None = None
+    name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -157,7 +158,9 @@ def _parse_long(raw: Any, source: str) -> LongColumns | None:
         return None
     if not isinstance(raw, dict):
         raise ValueError(f"{source}: 'long' must be a mapping")
-    keys = {"series", "value_eu", "value_dn", "status", "dn_alarm", "eu_alarm", "session", "kind"}
+    keys = {
+        "series", "value_eu", "value_dn", "status", "dn_alarm", "eu_alarm", "session", "kind", "name",
+    }
     _reject_unknown(raw, keys, f"{source}: long")
     values = {key: _optional_str(raw, key, f"{source}: long") for key in keys}
     if not values["series"]:
