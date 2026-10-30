@@ -29,6 +29,7 @@ class LongColumns:
     eu_alarm: str | None = None
     session: str | None = None
     kind: str | None = None
+    name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,11 @@ def parse_mapping(raw: Any, *, source: str = "mapping") -> SourceMapping:
 
     dictionary = _parse_dictionary(raw.get("dictionary"), source)
     kind_map = _parse_kind_map(raw.get("kind_map"), source)
+    if layout == "long" and dictionary is None and not long_columns.kind:
+        raise ValueError(
+            f"{source}: layout 'long' needs 'long.kind' or a 'dictionary' to tell numeric "
+            "from categorical series"
+        )
     if (dictionary is not None or (long_columns and long_columns.kind)) and not kind_map:
         raise ValueError(
             f"{source}: 'kind_map' is required when 'dictionary' or 'long.kind' is set"
@@ -147,7 +153,9 @@ def _parse_long(raw: Any, source: str) -> LongColumns | None:
         return None
     if not isinstance(raw, dict):
         raise ValueError(f"{source}: 'long' must be a mapping")
-    keys = {"series", "value_eu", "value_dn", "status", "dn_alarm", "eu_alarm", "session", "kind"}
+    keys = {
+        "series", "value_eu", "value_dn", "status", "dn_alarm", "eu_alarm", "session", "kind", "name",
+    }
     _reject_unknown(raw, keys, f"{source}: long")
     values = {key: _optional_str(raw, key, f"{source}: long") for key in keys}
     if not values["series"]:

@@ -3,7 +3,7 @@
 # To add a dataset: copy this file, rename it (for example my_mission.yaml), and replace
 # the values below. Keys marked "optional" can be deleted. A mapping is checked when it is
 # loaded; an unknown key or a wrong value is rejected with the field name in the message.
-# For one column per channel, use template_wide.yaml instead.
+# For one column per channel (wide layout), see cats.yaml.
 
 # Short name for this source. Becomes the dataset name.
 name: my_long_source
@@ -30,7 +30,8 @@ long:
   dn_alarm: raw_alarm       # optional: alarm state of the raw value
   eu_alarm: eng_alarm       # optional: alarm state of the engineering value
   session: session_id       # optional: tells repeated (time, channel) readings apart
-  kind: value_type          # optional: column holding each channel's type (see kind_map)
+  kind: value_type          # column holding each channel's type (see kind_map)
+  name: channel_name        # optional: readable channel name, kept in the catalog
 
 # optional: columns kept as context (stored with each reading, not treated as channels).
 context_columns: []
@@ -48,7 +49,8 @@ exclude_columns: []
 #   channels: "Dictionaries/channel.xml"
 #   alarms: "Dictionaries/alarms.xml"
 
-# Type names -> numeric or categorical. Required when `long.kind` or `dictionary` is set.
+# Type names -> numeric or categorical. A long mapping needs `long.kind` or `dictionary`
+# to know each channel's type, and kind_map to turn those types into numeric/categorical.
 # List every type name that appears in the data and the dictionary. Matching ignores case.
 kind_map:
   FLOAT: numeric
