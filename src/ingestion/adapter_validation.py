@@ -113,6 +113,11 @@ def parse_mapping(raw: Any, *, source: str = "mapping") -> SourceMapping:
 
     dictionary = _parse_dictionary(raw.get("dictionary"), source)
     kind_map = _parse_kind_map(raw.get("kind_map"), source)
+    if layout == "long" and dictionary is None and not long_columns.kind:
+        raise ValueError(
+            f"{source}: layout 'long' needs 'long.kind' or a 'dictionary' to tell numeric "
+            "from categorical series"
+        )
     if (dictionary is not None or (long_columns and long_columns.kind)) and not kind_map:
         raise ValueError(
             f"{source}: 'kind_map' is required when 'dictionary' or 'long.kind' is set"
