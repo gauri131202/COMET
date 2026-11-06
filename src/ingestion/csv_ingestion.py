@@ -7,7 +7,7 @@ import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from src.common.paths import DATA_DIR, LOGS_DIR
 from src.db import (
@@ -43,13 +43,13 @@ def ingest_csvs(
     *,
     db_path: str | Path | None = None,
     logs_dir: str | Path = LOGS_DIR,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     init_db(db_path)
     logger = _build_logger(Path(logs_dir))
     data_path = Path(data_dir)
     data_path.mkdir(parents=True, exist_ok=True)
 
-    summary = {"ingested": 0, "skipped_duplicates": 0, "failed": 0}
+    summary: dict[str, Any] = {"ingested": 0, "skipped_duplicates": 0, "failed": 0, "dataset_ids": {}}
     csv_files = sorted(path for path in data_path.iterdir() if path.is_file() and path.suffix.lower() == ".csv")
 
     if not csv_files:
@@ -75,6 +75,7 @@ def ingest_csvs(
                     duplicate["source_file_id"],
                 )
                 summary["skipped_duplicates"] += 1
+                summary["dataset_ids"][metadata.file_name] = duplicate["dataset_id"]
                 continue
 
             csv_data = _read_and_validate_csv(csv_path)
@@ -112,6 +113,7 @@ def ingest_csvs(
                 len(csv_data.rows),
             )
             summary["ingested"] += 1
+            summary["dataset_ids"][metadata.file_name] = dataset_id
         except Exception as exc:
             logger.error("Failed to ingest CSV %s: %s", csv_path.name, exc)
             summary["failed"] += 1
